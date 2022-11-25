@@ -74,6 +74,7 @@ pub fn main() anyerror!void {
     defer args.deinit();
 
     var input: ?[]u8 = null;
+    var output_path: ?[:0]const u8 = null;
 
     // Skip the program name first
     _ = args.skip();
@@ -105,24 +106,26 @@ pub fn main() anyerror!void {
 
             const file_size = try input_file.getEndPos();
             input = try input_file.reader().readAllAlloc(allocator, file_size);
+        } else if (std.mem.eql(u8, arg, "-o") or std.mem.eql(u8, arg, "--output")) {
+            output_path = args.next();
         }
     }
 
     if (input == null) {
         std.debug.print("Input argument required.\n", .{});
     } else {
-        try output_encoding(input.?, null);
+        try output_encoding(input.?, output_path);
     }
 }
 
-fn output_encoding(to_encode: []u8, output_filename: ?[:0]const u8) anyerror!void {
+fn output_encoding(to_encode: []u8, output_path: ?[:0]const u8) anyerror!void {
     const allocator = std.heap.page_allocator;
     const output = try encode(to_encode, allocator);
     defer allocator.free(output);
 
-    if (output_filename != null) {
+    if (output_path != null) {
         const output_file = try std.fs.cwd().createFile(
-            output_filename.?,
+            output_path.?,
             .{ .read = true },
         );
         defer output_file.close();
