@@ -146,11 +146,11 @@ fn encode(to_encode: []u8, allocator: Allocator) anyerror![]u8 {
     for (to_encode) |byte| {
         const next: u8 = buffer orelse 0 | byte >> shift;
         buffer = byte << 6 - shift & std.math.maxInt(u6);
-        try output.append(next);
+        try output.append(encode_map[next]);
         item_count = (item_count + 1) % 4;
 
         if (shift == 6) {
-            try output.append(buffer.?);
+            try output.append(encode_map[buffer.?]);
             item_count = (item_count + 1) % 4;
             buffer = null;
             shift = 2;
@@ -160,12 +160,8 @@ fn encode(to_encode: []u8, allocator: Allocator) anyerror![]u8 {
     }
 
     if (buffer != null) {
-        try output.append(buffer.?);
+        try output.append(encode_map[buffer.?]);
         item_count = (item_count + 1) % 4;
-    }
-
-    for (output.items) |item, i| {
-        output.items[i] = encode_map[item];
     }
 
     while (item_count != 0) : (item_count = (item_count + 1) % 4) {
