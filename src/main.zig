@@ -73,17 +73,49 @@ pub fn main() anyerror!void {
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
 
-    _ = args.skip();
-    const to_encode = args.next();
+    var input: ?[]u8 = null;
 
-    if (to_encode == null or args.skip()) {
-        std.debug.print("Exactly one argument required.\n", .{});
+    // Skip the program name first
+    _ = args.skip();
+
+    // Handle arguments for getting input (either as an argument or from a file)
+    while (args.next()) |arg| {
+        if (std.mem.eql(u8, arg, "-i") or std.mem.eql(u8, arg, "--input")) {
+            const next_arg = args.next();
+
+            if (next_arg == null) {
+                std.debug.print("{s} requires input.\n", .{arg});
+                return;
+            }
+
+            input = try allocator.dupe(u8, next_arg.?);
+        } else if (std.mem.eql(u8, arg, "-f") or std.mem.eql(u8, arg, "--file")) {
+            const next_arg = args.next();
+
+            if (next_arg == null) {
+                std.debug.print("{s} requires a filename.\n", .{arg});
+                return;
+            }
+
+            const input_file = try std.fs.cwd().openFile(
+                next_arg.?,
+                .{},
+            );
+            defer input_file.close();
+
+            const file_size = try input_file.getEndPos();
+            input = try input_file.reader().readAllAlloc(allocator, file_size);
+        }
+    }
+
+    if (input == null) {
+        std.debug.print("Input argument required.\n", .{});
     } else {
-        try output_encoding(to_encode.?, null);
+        try output_encoding(input.?, null);
     }
 }
 
-fn output_encoding(to_encode: [:0]const u8, output_filename: ?[:0]const u8) anyerror!void {
+fn output_encoding(to_encode: []u8, output_filename: ?[:0]const u8) anyerror!void {
     const allocator = std.heap.page_allocator;
     const output = try encode(to_encode, allocator);
     defer allocator.free(output);
@@ -100,7 +132,7 @@ fn output_encoding(to_encode: [:0]const u8, output_filename: ?[:0]const u8) anye
     }
 }
 
-fn encode(to_encode: [:0]const u8, allocator: Allocator) anyerror![]u8 {
+fn encode(to_encode: []u8, allocator: Allocator) anyerror![]u8 {
     var output = std.ArrayList(u8).init(allocator);
     defer output.deinit();
 
