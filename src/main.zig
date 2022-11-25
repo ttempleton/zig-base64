@@ -139,28 +139,28 @@ fn encode(to_encode: []u8, allocator: Allocator) anyerror![]u8 {
     var output = std.ArrayList(u8).init(allocator);
     defer output.deinit();
 
-    var buffer: u8 = 0;
+    var buffer: ?u8 = 0;
     var shift: u3 = 2;
     var item_count: u3 = 0;
 
     for (to_encode) |byte| {
-        const next: u8 = buffer | byte >> shift;
+        const next: u8 = buffer orelse 0 | byte >> shift;
         buffer = byte << 6 - shift & std.math.maxInt(u6);
         try output.append(next);
         item_count = (item_count + 1) % 4;
 
         if (shift == 6) {
-            try output.append(buffer);
+            try output.append(buffer.?);
             item_count = (item_count + 1) % 4;
-            buffer = 0;
+            buffer = null;
             shift = 2;
         } else {
             shift += 2;
         }
     }
 
-    if (buffer != 0) {
-        try output.append(buffer);
+    if (buffer != null) {
+        try output.append(buffer.?);
         item_count = (item_count + 1) % 4;
     }
 
