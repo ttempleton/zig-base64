@@ -115,6 +115,7 @@ pub fn main() anyerror!void {
         std.debug.print("Input argument required.\n", .{});
     } else {
         try output_encoding(input.?, output_path);
+        allocator.free(input.?);
     }
 }
 
