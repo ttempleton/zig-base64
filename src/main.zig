@@ -173,8 +173,10 @@ fn encode(to_encode: []u8, allocator: Allocator) anyerror![]u8 {
 
 test "encode test" {
     const allocator = std.testing.allocator;
+    const input = try allocator.dupe(u8, "All your codebase are belong to us.");
+    defer allocator.free(input);
     const encoding_expected = "QWxsIHlvdXIgY29kZWJhc2UgYXJlIGJlbG9uZyB0byB1cy4=";
-    const encoded_by_function = try encode("All your codebase are belong to us.", allocator);
+    const encoded_by_function = try encode(input, allocator);
     defer allocator.free(encoded_by_function);
 
     try std.testing.expectEqualStrings(encoded_by_function, encoding_expected);
