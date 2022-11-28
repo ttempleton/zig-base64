@@ -181,9 +181,11 @@ fn decode(to_decode: []u8, allocator: Allocator) anyerror![]u8 {
 
     var buffer: ?u8 = null;
     var shift: u3 = 0;
+    var had_padding = false;
 
     for (to_decode) |byte| {
         if (byte == '=') {
+            had_padding = true;
             break;
         }
 
@@ -202,7 +204,7 @@ fn decode(to_decode: []u8, allocator: Allocator) anyerror![]u8 {
         }
     }
 
-    if (buffer != null) {
+    if (!had_padding and buffer != null) {
         try out.append(buffer.?);
     }
 
